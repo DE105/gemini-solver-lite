@@ -1,0 +1,7 @@
+{
+  "name": "全能解题助手",
+  "description": "基于 Gemini 3 的多模态解题助手，支持 Python 辅助验算，覆盖全学科智能批改与解析。",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
