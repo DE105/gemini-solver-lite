@@ -1,49 +1,98 @@
-
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>全能解题助手 - Gemini 3 多模态</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              brand: {
-                50: '#f0f9ff',
-                100: '#e0f2fe',
-                500: '#0ea5e9',
-                600: '#0284c7',
-                700: '#0369a1',
-              },
-              correct: '#22c55e',
-              wrong: '#ef4444',
-            }
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>全能解题助手 - Gemini 3 多模态</title>
+  <!-- 用于数学公式渲染的 KaTeX CSS（v0.16.20） -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.20/dist/katex.min.css" crossorigin="anonymous">
+  <!-- KaTeX 脚本 -->
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.20/dist/katex.min.js" crossorigin="anonymous"></script>
+  <!-- KaTeX 自动渲染扩展 -->
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.20/dist/contrib/auto-render.min.js"
+    crossorigin="anonymous"></script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+            },
+            correct: '#22c55e',
+            wrong: '#ef4444',
+          },
+          backgroundImage: {
+            'grid-pattern': "radial-gradient(#cbd5e1 1px, transparent 1px)",
+          },
+          backgroundSize: {
+            'grid-pattern': '20px 20px',
           }
         }
       }
-    </script>
-    <style>
-      /* Hide scrollbar for Chrome, Safari and Opera */
-      .no-scrollbar::-webkit-scrollbar {
-          display: none;
+    }
+  </script>
+  <style>
+    /* 隐藏滚动条（Chrome / Safari / Opera） */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* 隐藏滚动条（IE / Edge / Firefox） */
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      /* IE / Edge */
+      scrollbar-width: none;
+      /* Firefox */
+    }
+
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
       }
-      /* Hide scrollbar for IE, Edge and Firefox */
-      .no-scrollbar {
-          -ms-overflow-style: none;  /* IE and Edge */
-          scrollbar-width: none;  /* Firefox */
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
-      
-      @keyframes fade-in {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .animate-fade-in {
-        animation: fade-in 0.3s ease-out forwards;
-      }
-    </style>
+    }
+
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out forwards;
+    }
+
+    /* KaTeX 字体与滚动适配 */
+    .katex {
+      font-size: 1.1em;
+    }
+
+    /* 块级公式过宽时启用横向滚动 */
+    .katex-display {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-top: 0.5rem;
+      padding-bottom: 0.5rem;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* 块级公式滚动条样式 */
+    .katex-display::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .katex-display::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 4px;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -54,8 +103,12 @@
   }
 }
 </script>
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-gray-50 text-gray-900 antialiased selection:bg-brand-100">
-    <div id="root"></div>
-  </body>
+
+<body class="bg-gray-50 text-gray-900 antialiased selection:bg-brand-100">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
 </html>

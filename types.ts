@@ -7,16 +7,16 @@ export interface BoundingBox {
 
 export interface HomeworkProblem {
   id: string;
-  subject: string; // e.g., 'Math', 'Physics', 'History', 'English'
-  questionText: string; // Previously originalText
+  subject: string; // 例如：'Math'、'Physics'、'History'、'English'
+  questionText: string; // 原字段：originalText
   studentAnswer: string;
   isCorrect: boolean;
-  correctAnswer: string; // Previously pythonCalculatedAnswer
-  verificationCode?: string; // Previously pythonCode, optional for non-computational subjects
-  hint: string; 
-  solutionSteps?: string[]; 
+  correctAnswer: string; // 原字段：pythonCalculatedAnswer
+  verificationCode?: string; // 原字段：pythonCode；非计算类学科可选
+  hint: string;
+  solutionSteps?: string[];
   errorType?: 'calculation' | 'fact' | 'grammar' | 'logic' | 'unknown' | 'unanswered';
-  boundingBox: BoundingBox; 
+  boundingBox: BoundingBox;
 }
 
 export interface AnalysisResult {
