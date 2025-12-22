@@ -112,13 +112,13 @@ const AnalysisOverlay: React.FC<{ imageBase64: string | null; result: AnalysisRe
 
   // 辅助函数：清理模型返回的步骤中可能包含的重复序号
   const cleanStepText = (text: string) => {
-    // 移除形如 "步骤 19:", "19.", "Step 1:" 等前缀
     return text.replace(/^(步骤\s*\d+[\s、:]*|\d+[\.\s、:]+|Step\s*\d+[\s、:]*)/i, '').trim();
   };
 
   return (
     <div className="flex flex-col md:flex-row h-full overflow-hidden bg-gray-200">
-      <div className="flex-1 overflow-auto bg-gray-300 p-2 md:p-6 text-center">
+      {/* 图像显示区 - 移动端固定40%高度或合理比例，桌面端flex-1 */}
+      <div className="h-[40vh] md:h-full md:flex-1 overflow-auto bg-gray-300 p-2 md:p-6 text-center shrink-0 md:shrink">
         {imageBase64 ? (
           <div className="relative inline-block shadow-2xl bg-white align-top max-w-full">
             <img src={`data:image/jpeg;base64,${imageBase64}`} className="block max-w-full h-auto" alt="Homework Content" />
@@ -140,32 +140,33 @@ const AnalysisOverlay: React.FC<{ imageBase64: string | null; result: AnalysisRe
             </svg>
           </div>
         ) : (
-          <div className="h-full flex items-center justify-center p-20 text-gray-400 font-black text-2xl border-4 border-dashed border-gray-300 rounded-[3rem] bg-gray-50">纯文本分析模式</div>
+          <div className="h-full flex items-center justify-center p-10 md:p-20 text-gray-400 font-black text-xl md:text-2xl border-4 border-dashed border-gray-300 rounded-[2rem] md:rounded-[3rem] bg-gray-50">纯文本分析模式</div>
         )}
       </div>
 
-      <div className="md:w-[480px] w-full bg-white border-t md:border-t-0 md:border-l shadow-[-10px_0_30px_rgba(0,0,0,0.05)] z-10 flex flex-col shrink-0 animate-fade-in">
-        <div className="flex-1 overflow-y-auto p-8 no-scrollbar">
+      {/* 解析详情面板 - 移动端填满剩余空间，桌面端固定宽度 */}
+      <div className="flex-1 md:w-[480px] md:flex-none bg-white border-t md:border-t-0 md:border-l shadow-[-10px_0_30px_rgba(0,0,0,0.05)] z-10 flex flex-col min-h-0 animate-fade-in overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 no-scrollbar">
           {selectedProblem ? (
-            <div className="space-y-10">
+            <div className="space-y-8 md:space-y-10">
               <div className="flex items-center justify-between">
-                <span className="px-4 py-1.5 bg-brand-50 text-brand-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-brand-100">{selectedProblem.subject}</span>
-                <div className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wide ${selectedProblem.isCorrect ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>{selectedProblem.isCorrect ? '已掌握' : '需改进'}</div>
+                <span className="px-3 md:px-4 py-1.5 bg-brand-50 text-brand-600 text-[10px] font-black rounded-full uppercase tracking-widest border border-brand-100">{selectedProblem.subject}</span>
+                <div className={`px-3 md:px-4 py-1.5 rounded-full text-[10px] md:text-xs font-black uppercase tracking-wide ${selectedProblem.isCorrect ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-red-50 text-red-600 border border-red-100'}`}>{selectedProblem.isCorrect ? '已掌握' : '需改进'}</div>
               </div>
 
               <div className="space-y-3">
                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">题目详情</h3>
-                <MathContent content={selectedProblem.questionText} className="text-xl font-black text-gray-900 tracking-tight" />
+                <MathContent content={selectedProblem.questionText} className="text-lg md:text-xl font-black text-gray-900 tracking-tight" />
               </div>
 
               <div className="grid grid-cols-1 gap-4">
-                <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100 shadow-sm">
-                  <p className="text-[10px] uppercase font-black text-gray-400 mb-3 tracking-widest">你的回答</p>
-                  <MathContent content={selectedProblem.studentAnswer} className="text-lg font-bold text-gray-800" />
+                <div className="p-4 md:p-6 bg-gray-50 rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm">
+                  <p className="text-[10px] uppercase font-black text-gray-400 mb-2 md:mb-3 tracking-widest">你的回答</p>
+                  <MathContent content={selectedProblem.studentAnswer || '未作答'} className="text-base md:text-lg font-bold text-gray-800" />
                 </div>
-                <div className="p-6 bg-green-50 rounded-3xl border border-green-100 shadow-sm">
-                  <p className="text-[10px] uppercase font-black text-green-600 mb-3 tracking-widest">正确答案</p>
-                  <MathContent content={selectedProblem.correctAnswer} className="text-lg font-bold text-green-700" />
+                <div className="p-4 md:p-6 bg-green-50 rounded-2xl md:rounded-3xl border border-green-100 shadow-sm">
+                  <p className="text-[10px] uppercase font-black text-green-600 mb-2 md:mb-3 tracking-widest">正确答案</p>
+                  <MathContent content={selectedProblem.correctAnswer} className="text-base md:text-lg font-bold text-green-700" />
                 </div>
               </div>
 
@@ -174,7 +175,7 @@ const AnalysisOverlay: React.FC<{ imageBase64: string | null; result: AnalysisRe
                   <button onClick={() => setShowCode(!showCode)} className="flex items-center justify-between w-full p-4 bg-gray-900 text-white rounded-2xl hover:bg-black transition-all shadow-lg active:scale-[0.98]">
                     <div className="flex items-center gap-2">
                       <span className="text-sm">🐍</span>
-                      <span className="text-xs font-black uppercase tracking-widest">Python 验算逻辑</span>
+                      <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">Python 验算逻辑</span>
                     </div>
                     <span className={`text-xs transition-transform ${showCode ? 'rotate-180' : ''}`}>▼</span>
                   </button>
@@ -184,20 +185,20 @@ const AnalysisOverlay: React.FC<{ imageBase64: string | null; result: AnalysisRe
 
               <div className="space-y-4">
                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">解题思路</h3>
-                <div className="bg-brand-50 p-6 rounded-3xl border border-brand-100">
-                  <MathContent content={selectedProblem.hint} className="text-brand-800 font-medium" />
+                <div className="bg-brand-50 p-5 md:p-6 rounded-2xl md:rounded-3xl border border-brand-100">
+                  <MathContent content={selectedProblem.hint} className="text-brand-800 font-medium text-sm md:text-base" />
                 </div>
               </div>
 
               {selectedProblem.solutionSteps && selectedProblem.solutionSteps.length > 0 && (
-                <div className="space-y-6">
+                <div className="space-y-6 pb-6">
                   <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">详细步骤</h3>
                   <div className="space-y-6">
                     {selectedProblem.solutionSteps
                       .filter(s => s.trim().length > 0)
                       .map((step, idx) => (
                         <div key={idx} className="flex gap-4 group">
-                          <div className="flex-shrink-0 w-7 h-7 bg-brand-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-md shadow-brand-100">
+                          <div className="flex-shrink-0 w-6 h-6 md:w-7 md:h-7 bg-brand-500 text-white rounded-full flex items-center justify-center text-[10px] font-black shadow-md shadow-brand-100">
                             {idx + 1}
                           </div>
                           <MathContent content={cleanStepText(step)} className="text-gray-700 pt-1 text-sm md:text-base flex-1" />
@@ -209,8 +210,8 @@ const AnalysisOverlay: React.FC<{ imageBase64: string | null; result: AnalysisRe
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-gray-300 space-y-4">
-              <div className="text-6xl">🎯</div>
-              <p className="font-black uppercase tracking-widest text-sm">请点击题目查看详情</p>
+              <div className="text-5xl md:text-6xl">🎯</div>
+              <p className="font-black uppercase tracking-widest text-xs md:text-sm text-center">请在上方区域选择<br/>或点击题目框查看详情</p>
             </div>
           )}
         </div>

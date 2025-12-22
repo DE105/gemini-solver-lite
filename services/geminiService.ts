@@ -1,19 +1,24 @@
-
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { AnalysisResult } from "../types";
 
-const SYSTEM_PROMPT = `你是一位拥有高级数学和科学背景的金牌教师。请分析用户提供的作业（图片或文字）。
+const SYSTEM_PROMPT = `你是一位拥有高级数学和科学背景的金牌教师，具备极强的视觉空间感知能力。请分析用户提供的作业图片或文字。
 
 核心要求：
-1. 识别：识别题目、学生答案。
-2. 验证：对于任何数学计算、科学公式或逻辑推理，你必须利用内置的 Python 代码执行工具进行模拟或计算，以确保答案的绝对准确。
-3. 结构化输出：
-   - 必须在所有 Python 代码运行完毕后，输出最终的 JSON 结果。
-   - 为每道题返回准确的 [ymin, xmin, ymax, xmax] 坐标（0-1000 归一化）。
-   - 将验证时使用的 Python 代码放入 verificationCode 字段。
-   - **极其重要**：所有数学公式、符号、甚至单独的变量（如 $x$, $\pi$）必须使用标准的 LaTeX 格式并包裹在 $ 或 $$ 中。确保 correctAnswer 字段也是 LaTeX 格式。
-   - **步骤规范**：solutionSteps 数组中的每个字符串应只包含纯描述和公式。**严禁**包含“步骤 1”、“1.”、“Step 1”等前缀，因为 UI 会自动添加序号。
-4. 严格输出定义的 JSON 结构。不要在 JSON 外包含任何文字。`;
+1. **精准识别与定位**：
+   - 识别出图片中的每一道题目。
+   - **坐标规范**：为每道题返回极其精确的 [ymin, xmin, ymax, xmax] 坐标。
+   - 坐标系：基于 0-1000 的归一化坐标，[0, 0] 为左上角，[1000, 1000] 为右下角。
+   - **覆盖范围**：框选区域必须**完美包含**题目编号、完整的题目正文、以及学生书写答案的区域。严禁包含无关的页面边缘、多余的空白或其他题目的内容。
+
+2. **逻辑验证**：
+   - 对于任何涉及数学计算、公式推导或逻辑判断的内容，你必须使用内置的 Python 代码工具进行验算，确保批改结果（isCorrect）和正确答案（correctAnswer）绝对无误。
+
+3. **结构化输出要求**：
+   - 在所有 Python 验算完成后，输出唯一的 JSON 结果。
+   - 所有数学公式、变量（如 $x$, $\pi$）必须使用标准的 LaTeX 格式并包裹在 $ 或 $$ 中。
+   - **步骤规范**：solutionSteps 数组中只包含纯描述和公式，禁止包含“步骤 1”等序号前缀。
+
+4. 严格遵守定义的 JSON 结构。`;
 
 const JSON_SCHEMA = {
   type: Type.OBJECT,
@@ -34,7 +39,12 @@ const JSON_SCHEMA = {
           solutionSteps: { type: Type.ARRAY, items: { type: Type.STRING } },
           boundingBox: {
             type: Type.OBJECT,
-            properties: { ymin: { type: Type.NUMBER }, xmin: { type: Type.NUMBER }, ymax: { type: Type.NUMBER }, xmax: { type: Type.NUMBER } },
+            properties: { 
+              ymin: { type: Type.NUMBER, description: "0-1000 归一化的顶部坐标" }, 
+              xmin: { type: Type.NUMBER, description: "0-1000 归一化的左侧坐标" }, 
+              ymax: { type: Type.NUMBER, description: "0-1000 归一化的底部坐标" }, 
+              xmax: { type: Type.NUMBER, description: "0-1000 归一化的右侧坐标" } 
+            },
             required: ["ymin", "xmin", "ymax", "xmax"]
           }
         },
@@ -46,16 +56,8 @@ const JSON_SCHEMA = {
   required: ["problems", "overallSummary"]
 };
 
-/**
- * 健壮的 JSON 解析逻辑
- * 处理包含 codeExecutionParts 的复杂响应
- */
 const parseGeminiResponse = (response: GenerateContentResponse): AnalysisResult => {
-  // 手动提取所有 text parts。由于启用了代码执行，response.text 可能会触发警告。
-  // 我们直接从 candidates 结构中读取。
   const parts = response.candidates?.[0]?.content?.parts || [];
-  
-  // 过滤并合并所有文本部分。通常 JSON 会出现在最后一个文本部分。
   const textContent = parts
     .filter(part => 'text' in part)
     .map(part => (part as any).text)
@@ -66,10 +68,8 @@ const parseGeminiResponse = (response: GenerateContentResponse): AnalysisResult 
   }
   
   try {
-    // 尝试寻找文本中的 JSON 块（处理可能存在的 Markdown 代码块或杂质）
     const jsonMatch = textContent.match(/\{[\s\S]*\}/);
     const targetJson = jsonMatch ? jsonMatch[0] : textContent;
-    
     return JSON.parse(targetJson);
   } catch (e) {
     console.error("JSON 解析失败。原始文本：", textContent);
@@ -84,7 +84,7 @@ export const analyzeHomeworkImage = async (base64: string): Promise<AnalysisResu
     contents: {
       parts: [
         { inlineData: { mimeType: 'image/jpeg', data: base64 } },
-        { text: "请批改这张作业。如果是数学或理科题，请务必使用 Python 工具进行验算以确保结果正确。请框出每道题的位置。" }
+        { text: "请精准识别并批改这张作业。请重点确保题目框选 (boundingBox) 的准确性，完整包裹题目内容及答题区。使用 Python 验算所有理科题目。" }
       ],
     },
     config: {
@@ -92,7 +92,7 @@ export const analyzeHomeworkImage = async (base64: string): Promise<AnalysisResu
       responseMimeType: "application/json",
       responseSchema: JSON_SCHEMA,
       tools: [{ codeExecution: {} }], 
-      temperature: 1
+      temperature: 0.1 // 降低温度以提高坐标生成的确定性和精度
     },
   });
   
