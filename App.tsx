@@ -5,196 +5,121 @@ import { analyzeHomeworkImage, analyzeHomeworkText } from './services/geminiServ
 import AnalysisOverlay from './components/AnalysisOverlay';
 import LoadingScreen from './components/LoadingScreen';
 
-// 将图片文件转换为 base64 的辅助函数
-// 保持原始尺寸以提升 AI 识别准确率
-const imageToBase64 = (file: File): Promise<{ base64: string; width: number; height: number }> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (e) => {
-      const img = new Image();
-      img.src = e.target?.result as string;
-      img.onload = () => {
-        const width = img.naturalWidth || img.width;
-        const height = img.naturalHeight || img.height;
-
-        const canvas = document.createElement('canvas');
-        // 使用原始图片尺寸（Gemini 支持较大图片）
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('无法获取 Canvas 上下文'));
-          return;
-        }
-
-        // 按原始尺寸将图片绘制到 canvas
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // 以较高质量（0.9）导出 JPEG 以保留细节
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-        // 去掉 "data:image/jpeg;base64," 前缀
-        resolve({ base64: dataUrl.split(',')[1], width, height });
-      };
-      img.onerror = (error) => reject(error);
-    };
-    reader.onerror = (error) => reject(error);
-  });
-};
-
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.HOME);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
-  const [currentImageDimensions, setCurrentImageDimensions] = useState<{ width: number; height: number } | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inputText, setInputText] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const galleryInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-
-      // 立即进入加载状态
-      setView(AppView.ANALYZING);
-      setError(null);
-      setCurrentImage(null); // 处理新图片时清空旧图片
-      setCurrentImageDimensions(null);
-
-      try {
-        // 转为 base64（保持原始尺寸以提升准确率）
-        const { base64, width, height } = await imageToBase64(file);
-        setCurrentImage(base64);
-        setCurrentImageDimensions({ width, height });
-
-        const result = await analyzeHomeworkImage(base64, { width, height });
-        setAnalysisResult(result);
-        setView(AppView.RESULTS);
-      } catch (err: any) {
-        console.error('处理失败：', err);
-        setError("识别失败：请检查网络连接或尝试上传较小的图片。");
-        setView(AppView.HOME);
-      }
-    }
-  };
-
-  const handleTextSubmit = async () => {
-    if (!inputText.trim()) return;
-    setCurrentImage(null);
-    setCurrentImageDimensions(null);
+  const handleFileUpload = async (file: File) => {
     setView(AppView.ANALYZING);
     setError(null);
     try {
-      const result = await analyzeHomeworkText(inputText);
+      // 保持原始图片尺寸和大小，不做任何处理
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      setCurrentImage(base64);
+      const result = await analyzeHomeworkImage(base64);
       setAnalysisResult(result);
       setView(AppView.RESULTS);
     } catch (err) {
-      setError("解题失败，请稍后重试。");
+      console.error('Analysis error:', err);
+      setError("分析遇到问题，请确保图片清晰且网络连接正常。");
       setView(AppView.HOME);
     }
   };
 
-  const renderHome = () => (
-    <div className="flex flex-col h-full bg-white relative overflow-hidden">
-      <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-brand-100 rounded-full blur-3xl opacity-50"></div>
-      <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-green-100 rounded-full blur-3xl opacity-50"></div>
-
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 text-center overflow-y-auto no-scrollbar">
-        <h1 className="text-4xl font-extrabold text-gray-900 mb-2 tracking-tight">
-          全能解题助手<span className="text-brand-500 text-2xl align-top ml-1">Lite</span>
-        </h1>
-        <p className="text-brand-600 mb-8 text-lg font-medium">
-          Gemini 3 · 多模态解题 + Python 辅助验算
-        </p>
-
-        <div className="w-full max-w-sm space-y-6">
-          {/* 文本输入区 */}
-          <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 shadow-inner group focus-within:ring-2 focus-within:ring-brand-500 transition-all">
-            <textarea
-              placeholder="手输题目或粘贴题目..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              className="w-full bg-transparent border-none focus:ring-0 text-gray-700 placeholder-gray-400 resize-none h-24 text-base"
-            />
-            <button
-              onClick={handleTextSubmit}
-              disabled={!inputText.trim()}
-              className="mt-2 w-full bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 text-white font-bold py-3 rounded-xl transition-all shadow-md active:scale-95 text-sm"
-            >
-              提交解题
-            </button>
-          </div>
-
-          <div className="flex items-center gap-4 text-gray-300">
-            <div className="flex-1 h-px bg-current"></div>
-            <span className="text-xs font-bold uppercase tracking-widest text-gray-400">或 拍照分析</span>
-            <div className="flex-1 h-px bg-current"></div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <button
-              onClick={() => cameraInputRef.current?.click()}
-              className="bg-brand-600 hover:bg-brand-700 text-white py-4 rounded-2xl shadow-lg transform transition active:scale-95 flex flex-col items-center justify-center gap-2"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
-              </svg>
-              <span className="font-bold">拍照解题</span>
-            </button>
-
-            <button
-              onClick={() => galleryInputRef.current?.click()}
-              className="bg-brand-50 hover:bg-brand-100 text-brand-700 py-4 rounded-2xl border border-brand-200 transition active:scale-95 flex flex-col items-center justify-center gap-2"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25z" />
-              </svg>
-              <span className="font-bold">上传照片</span>
-            </button>
-          </div>
-        </div>
-
-        {error && <div className="mt-6 p-4 bg-red-50 text-red-600 rounded-lg max-w-xs text-sm border border-red-100">{error}</div>}
-      </div>
-
-      <input type="file" ref={cameraInputRef} accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
-      <input type="file" ref={galleryInputRef} accept="image/*" className="hidden" onChange={handleFileSelect} />
-    </div>
-  );
-
   return (
-    <div className="h-screen w-full bg-gray-100 flex justify-center items-center">
-      <div className={`w-full h-full bg-white shadow-2xl overflow-hidden relative transition-all duration-500 ${view === AppView.RESULTS ? 'md:max-w-6xl md:h-[90vh] md:rounded-3xl' : 'max-w-md'}`}>
-        {view === AppView.HOME && renderHome()}
-        {view === AppView.ANALYZING && <LoadingScreen />}
-        {view === AppView.RESULTS && analysisResult && (
-          <div className="h-full flex flex-col">
-            <header className="h-16 shrink-0 bg-white border-b border-gray-100 flex items-center px-4 justify-between z-30">
-              <button
-                onClick={() => setView(AppView.HOME)}
-                className="flex items-center gap-2 text-gray-600 hover:text-brand-600 transition-colors font-medium"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-                </svg>
-                返回
-              </button>
-              <div className="text-center absolute left-1/2 -translate-x-1/2 hidden sm:block">
-                <span className="font-bold text-gray-800">解题报告</span>
-              </div>
-              <div className="text-xs text-gray-400 font-mono">
-                Gemini 3 Powered
-              </div>
-            </header>
-            <div className="flex-1 overflow-hidden relative">
-              <AnalysisOverlay imageBase64={currentImage} imageDimensions={currentImageDimensions} result={analysisResult} />
+    <div className="min-h-screen bg-white selection:bg-brand-100">
+      {view === AppView.HOME && (
+        <div className="max-w-2xl mx-auto px-6 pt-20 pb-12 animate-fade-in">
+          <header className="text-center space-y-4 mb-16">
+            <div className="inline-block px-4 py-1.5 bg-brand-50 text-brand-600 rounded-full text-xs font-black tracking-widest uppercase mb-2">
+              Gemini 3 Multimodal Engine
+            </div>
+            <h1 className="text-6xl font-black text-gray-900 tracking-tighter">
+              全能解题<span className="text-brand-500">助手</span>
+            </h1>
+            <p className="text-gray-400 font-medium text-lg">原始尺寸识别 · 像素级对齐 · 深度逻辑解析</p>
+          </header>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="group bg-gray-50 rounded-[2.5rem] p-8 text-left border-2 border-transparent hover:border-brand-500 hover:bg-white transition-all shadow-sm"
+            >
+              <div className="w-16 h-16 bg-brand-500 text-white rounded-2xl flex items-center justify-center text-3xl shadow-xl shadow-brand-200 mb-6 group-hover:scale-110 transition-transform">📸</div>
+              <h3 className="text-2xl font-black text-gray-900 mb-2">原始图片批改</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">上传练习册照片，不压缩不裁切，100% 还原题目原貌。</p>
+            </button>
+            
+            <div className="bg-gray-50 rounded-[2.5rem] p-8 border-2 border-transparent hover:border-brand-500 hover:bg-white transition-all shadow-sm group">
+              <div className="w-16 h-16 bg-white text-brand-500 rounded-2xl flex items-center justify-center text-3xl shadow-md mb-6 border border-gray-100 group-hover:scale-110 transition-transform">✍️</div>
+              <h3 className="text-2xl font-black text-gray-900 mb-2">纯文本解析</h3>
+              <p className="text-gray-500 text-sm leading-relaxed">粘贴复杂题目内容，利用 Gemini 3 进行逻辑推导。</p>
             </div>
           </div>
-        )}
-      </div>
+
+          <div className="relative">
+            <textarea 
+              className="w-full p-8 bg-gray-50 border-2 border-gray-100 rounded-[2.5rem] focus:border-brand-500 focus:bg-white focus:ring-0 text-lg transition-all min-h-[180px] resize-none"
+              placeholder="在此输入或粘贴题目文字..."
+              value={inputText}
+              onChange={e => setInputText(e.target.value)}
+            />
+            <button 
+              disabled={!inputText.trim()}
+              onClick={async () => {
+                setView(AppView.ANALYZING);
+                try {
+                  const res = await analyzeHomeworkText(inputText);
+                  setAnalysisResult(res);
+                  setView(AppView.RESULTS);
+                } catch { setError("识别失败，请检查输入内容"); setView(AppView.HOME); }
+              }}
+              className="absolute bottom-6 right-6 px-8 py-4 bg-brand-500 text-white rounded-2xl font-black shadow-xl shadow-brand-200 disabled:opacity-0 transition-all hover:bg-brand-600 active:scale-95"
+            >
+              立即解析
+            </button>
+          </div>
+
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*" 
+            onChange={e => e.target.files?.[0] && handleFileUpload(e.target.files[0])} 
+          />
+          {error && <div className="mt-6 p-4 bg-red-50 text-red-600 rounded-2xl text-center font-bold border border-red-100">{error}</div>}
+        </div>
+      )}
+
+      {view === AppView.ANALYZING && <LoadingScreen />}
+
+      {view === AppView.RESULTS && analysisResult && (
+        <div className="w-full h-screen flex flex-col overflow-hidden bg-gray-100">
+          <header className="h-16 border-b flex items-center px-6 justify-between shrink-0 bg-white z-20">
+            <button onClick={() => setView(AppView.HOME)} className="flex items-center gap-2 text-gray-500 font-bold hover:text-brand-500 transition-colors">
+              <span className="text-2xl">←</span> 返回首页
+            </button>
+            <div className="font-black text-xs tracking-widest text-gray-300 uppercase">Analysis Engine Result</div>
+            <div className="w-20"></div>
+          </header>
+          <div className="flex-1 overflow-hidden">
+            <AnalysisOverlay imageBase64={currentImage} result={analysisResult} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
