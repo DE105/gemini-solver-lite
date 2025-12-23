@@ -92,7 +92,7 @@ export const analyzeHomeworkImage = async (base64: string): Promise<AnalysisResu
       responseMimeType: "application/json",
       responseSchema: JSON_SCHEMA,
       tools: [{ codeExecution: {} }], 
-      temperature: 0.1 // 降低温度以提高坐标生成的确定性和精度
+      temperature: 1
     },
   });
   
@@ -102,7 +102,7 @@ export const analyzeHomeworkImage = async (base64: string): Promise<AnalysisResu
 export const analyzeHomeworkText = async (text: string): Promise<AnalysisResult> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3-flash-preview',
     contents: { parts: [{ text: `请解答以下题目，并使用 Python 验证你的计算过程：\n${text}` }] },
     config: {
       systemInstruction: SYSTEM_PROMPT,
