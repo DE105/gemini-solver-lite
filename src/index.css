@@ -1,0 +1,62 @@
+@import 'katex/dist/katex.min.css';
+@import 'highlight.js/styles/tokyo-night-dark.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out forwards;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.katex {
+  font-size: 1.1em;
+  line-height: 1.2;
+  text-rendering: auto;
+}
+
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.8rem 0;
+  margin: 0.5rem 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+pre.hljs::-webkit-scrollbar {
+  height: 6px;
+}
+pre.hljs::-webkit-scrollbar-track {
+  background: transparent;
+}
+pre.hljs::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 10px;
+}
+
+.math-content p {
+  margin-bottom: 0.75rem;
+}
+.math-content p:last-child {
+  margin-bottom: 0;
+}

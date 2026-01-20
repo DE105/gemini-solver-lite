@@ -7,12 +7,12 @@ export interface BoundingBox {
 
 export interface HomeworkProblem {
   id: string;
-  subject: string; // 例如：'Math'、'Physics'、'History'、'English'
-  questionText: string; // 原字段：originalText
+  subject: string;
+  questionText: string;
   studentAnswer: string;
   isCorrect: boolean;
-  correctAnswer: string; // 原字段：pythonCalculatedAnswer
-  verificationCode?: string; // 原字段：pythonCode；非计算类学科可选
+  correctAnswer: string;
+  verificationCode?: string;
   hint: string;
   solutionSteps?: string[];
   errorType?: 'calculation' | 'fact' | 'grammar' | 'logic' | 'unknown' | 'unanswered';

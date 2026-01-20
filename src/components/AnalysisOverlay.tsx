@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import hljs from 'highlight.js';
-import { AnalysisResult } from '../types';
+import katex from 'katex';
+import { AnalysisResult } from '@/types';
 
 /**
  * 基础 Math 渲染组件
@@ -8,9 +9,6 @@ import { AnalysisResult } from '../types';
 const MathRenderer: React.FC<{ content: string; displayMode?: boolean }> = ({ content, displayMode }) => {
   const html = useMemo(() => {
     if (!content) return '';
-    const katex = (window as any).katex;
-    if (!katex) return content;
-    
     try {
       return katex.renderToString(content, {
         displayMode: !!displayMode,
